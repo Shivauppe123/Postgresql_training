@@ -1,0 +1,285 @@
+CREATE DATABASE dentaldb;
+
+create type gender as enum('Male','Female','Transgender');
+
+create table Patient(MobileNo bigint primary key, FirstName varchar(100), LastName varchar(100), DOB date, Patient_Gender gender, Remember_Me boolean); 
+
+insert into patient(MobileNo, FirstName, LastName, DOB, Patient_Gender, Remember_Me) values(9952032862,'Parameswari','Bala','1970,04,05','Female',
+true);
+insert into patient(MobileNo, FirstName, LastName, DOB, Patient_Gender, Remember_Me) values(8056050425,'Bala','Manick','1965-04-27','Male',
+true);
+
+Alter table patient add column email text;
+Alter table patient add constraint email_unique Unique(email);
+truncate patient;
+
+update patient set email='parameswaribala@gmail.com' where MobileNo=9952032862;
+
+create table Address(Address_Id bigserial, Door_No varchar(5), Street_Name varchar(100), City varchar(100), State varchar(100), Pincode integer, Mobile_No_FK bigint references Patient(MobileNo), constraint Address_Id_Pk primary key(Address_Id));
+
+#List time zones
+select name,abbrev,utc_offset,is_dst from pg_timezone_names;
+#current time zone
+
+show timezone
+
+#all time zones
+select count(*) from pg_timezone_names;
+select * from pg_timezone_names limit 10;
+
+set Timezone='Australia/Darwin'
+show timezone
+
+select now()
+
+SELECT now(),  now()::timestamp, now() AT TIME ZONE '+09',
+   now()::timestamp AT TIME ZONE 'CST';
+
+
+create type day as enum('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday');
+
+create table Doctor(Doctor_MobileNo bigint primary key, FirstName varchar(100), LastName varchar(100), DOB date, Doctor_Gender gender, Remember_Me boolean, RegNo Text Unique, Specialization Text); 
+
+
+create table Appointment(Appointment_Id bigserial primary key,
+Patient_Mobile_No_FK bigint references Patient(MobileNo), Appointment_Day day, From_Time TIMESTAMP, To_Time TIMESTAMPTZ, Doctor_Mobile_No_FK bigint references Doctor(Doctor_MobileNo));
+
+
+Alter table doctor add constraint doctor_mobile_check check(doctor_mobileno>7000000001 and doctor_mobileno< 9999999999);
+
+
+insert into doctor(Doctor_MobileNo, FirstName, LastName, DOB, Doctor_Gender, Remember_Me, RegNo,Specialization) values(80560102999,'Vignesh','Bala','1995-12-07','Male',
+true,'MDS23858','Prosthodontics');
+
+
+
+insert into Appointment(Patient_Mobile_No_FK, Appointment_Day,From_Time, To_Time, Doctor_Mobile_No_FK)values(9952032862,'Monday','2023-02-27 18:00:00.37584+05:30','2023-02-27 19:00:00.37584+05:30'::timestamptz,8056010299);
+
+create table Dental_User(UserName text, Password text, Roles jsonb);
+
+
+insert into Dental_User(UserName,Password,Roles)values('eswaribala',
+'Test@123','[{"roleName":"ROLE_USER"},
+       {"roleName":"ROLE_ADMIN"}]');
+
+Add hstore extension using pgadmin dblevel extension
+
+create table prescription(Prescription_Id bigserial primary key, Doctor_MobileNo_FK bigint references Doctor(Doctor_MobileNo),
+Patien_MobileNo_FK bigint references Patient(MobileNo),
+Appointment_Id_FK bigserial references Appointment(Appointment_Id),
+Prescription_Info hstore);
+
+ALTER TABLE prescription RENAME COLUMN patien_mobileno_fk TO patient_mobileno_fk;
+
+INSERT INTO prescription (Doctor_MobileNo_FK, Patient_MobileNo_FK,Appointment_Id_FK,Prescription_Info)  
+VALUES  
+(       8056010299,9952032862,1,  
+        '"medicine_name" => "Dolo500",  
+       "dosage" => "500",  
+       "duration" => "2 days",  
+       "frequency" => "1-0-1",  
+        "notes" => "Any inconvenience immediately visit"'   
+);
+
+
+INSERT INTO prescription (Doctor_MobileNo_FK, Patient_MobileNo_FK,Appointment_Id_FK,Prescription_Info)  
+VALUES  
+(       8056010299,9952032862,1,  
+        '"medicine_name" => "Paracetamol",  
+       "dosage" => "250",  
+       "duration" => "2 days",  
+       "frequency" => "1-0-1",  
+        "notes" => "Any inconvenience immediately visit"'   
+);
+
+create table networkdata(inetaddr inet);
+insert into networkdata (inetaddr) values('192.168.0.0/24');
+insert into networkdata (inetaddr) values('192.168.0.1');
+
+\dx --> show the extensions
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+SELECT uuid_generate_v1();
+SELECT uuid_generate_v4();
+
+
+alter table Dental_User add column UserId uuid DEFAULT uuid_generate_v4 ();
+
+
+CREATE SEQUENCE BillSeq START WITH 1000
+INCREMENT BY 1 MAXVALUE 99999999999 CACHE 20 NO CYCLE;
+
+\ds to list the sequences
+or
+SELECT * FROM INFORMATION_SCHEMA.SEQUENCES;
+
+create table bill(Bill_No Numeric DEFAULT NEXTVAL('BillSeq') PRIMARY KEY, Appointment_Id_FK bigserial references Appointment(Appointment_Id),Treatment_Type Text, Cost integer);
+
+INSERT INTO Bill (Appointment_Id_FK,Treatment_Type,Cost) VALUES(1,
+'Implant',45000);
+
+INSERT INTO Bill (Appointment_Id_FK,Treatment_Type,Cost) VALUES(1,
+'Metal Cap',15000);
+
+
+
+\c [database name] - connect to a specified database
+\l - list all databases
+\d - display tables, views, and sequences
+\dt - display just tables
+\dv - display views
+\dm - display materialized views
+\di - display indexes
+\dn - display schemas
+\dT - display data types
+Etc.
+\sv [view name] - show a views definition
+\x - toggle expanded display. Useful for tables with a lot of columns being accessed
+Can be toggled on/off or set to auto
+\set - list all internal variables
+\set [Name] [Value] - set new internal variable
+\unset [Name] - delete internal variable
+\cd - change the directory that psql is working in
+\! [Command] - execute shell command
+Ex. \! ls or \! pwd
+\timing - toggles timing on queries
+\echo [message] - print the message to the console
+\copy - copies to a file
+\i [filename] - execute commands from a file
+\o [file] - writes output to file instead of console
+\q - exits psql
+\dt\di to list all tables and then list all indexes with additional technical information on the indexes.
+
+Alternative to synonym
+
+postgres=# \c dentaldb
+You are now connected to database "dentaldb" as user "admin".
+dentaldb=# CREATE SCHEMA dentalschema;
+CREATE SCHEMA
+dentaldb=# CREATE TABLE dentalschema.medicine (MedicineId bigserial,name text);
+CREATE TABLE
+dentaldb=# show search_path ;
+   search_path
+-----------------
+ "$user", public
+(1 row)
+
+
+dentaldb=# SET search_path TO "$user", dentalschema, public;
+SET
+dentaldb=# SELECT count(*) from medicine;
+ count
+-------
+     0
+(1 row)
+
+
+dentaldb=# CREATE VIEW dentalschema.dentalmedicine as SELECT * FROM dentalschema.medicine;
+CREATE VIEW
+dentaldb=#
+CREATE VIEW dentalschema.dentalmedicine_new as SELECT * FROM medicine;
+
+#xml
+
+create table hospital(hospitaldata xml);
+
+insert into hospital(hospitaldata) values(
+'<hospitals>
+ <hospital>
+<name>VEL Dental Clinic</name>
+<address>Chennai</address>
+</hospital>
+<hospital>
+<name>32 Dental Clinic</name>
+<address>Chennai</address>
+</hospital>
+</hospitals>
+');
+
+#composed data type
+create type fullname as (FirstName varchar(50), MiddleName varchar(50), LastName varchar(50));
+create table Donor (DonorId bigserial, DonorName fullname);
+insert into Donor(DonorName) values(ROW('Parameswari','', 'Bala'));
+select (donorname).firstname from donor;
+
+Money-->notes and coins
+USD-> dollar, cents
+UK--> sterling, pounds
+
+create type money as (notes integer, coins integer);
+create table payables(id bigserial, amount money);
+insert into payables(amount)values(ROW(5,50));
+select (amount).coins from payables;
+
+#range types
+
+create table reservations(id serial primary key, room varchar(5) not null,
+dates daterange not null);
+
+insert into reservations(room,dates)values('501',daterange('2023-03-23','2023-03-26'));
+
+select room from reservations where '[2023-03-23,2023-03-26]'::daterange @>dates;
+
+#full text search
+select to_tsvector('I will be travelling to Bangalore on 03/03/2023');
+SELECT to_tsquery('I & will & be & travelling & to & Bangalore & on & 03/03/2023');
+
+#materialized view
+
+create materialized view billview as select BillNo,Treatment_Type,Cost from bill WITH DATA;
+
+copy bill from 'G:\Local disk\Postgres\bill.csv' DELIMITER ',' CSV HEADER;
+
+refresh materialized view billview;
+
+SELECT tablename, indexname, indexdef FROM pg_indexes WHERE schemaname = 'public' ORDER BY tablename,indexname;
+
+create index billindex on bill("Cost");
+
+create index billindex on bill using hash("treatment_type");
+
+create index billpartialindex on bill using brin("cost") where cost>=10000;
+
+#meta data
+SELECT * FROM pg_statio_user_tables WHERE schemaname = 'public';
+
+
+VACUUM (VERBOSE, ANALYZE) bill;
+
+
+#partition
+
+Create Type StatusType As Enum('Project','Resource Pool','Left');
+
+create table employee (Employee_No serial, Name varchar(100), Status StatusType) PARTITION BY LIST(Status);
+CREATE TABLE employee_project PARTITION OF employee FOR VALUES IN ('Project');
+
+CREATE TABLE employee_rp PARTITION OF employee FOR VALUES IN ('Resource Pool');
+
+CREATE TABLE employee_left PARTITION OF employee FOR VALUES IN ('Left');
+
+insert into employee (Name,Status) values('Parameswari','Project');
+
+insert into employee (Name,Status) values('Bala','Project');
+
+
+insert into employee (Name,Status) values('Vignesh','Resource Pool');
+
+
+insert into employee (Name,Status) values('Arun','Left');
+
+
+#range patition
+RANGE Partition
+create table ClinicTransaction(Bill_No Numeric DEFAULT NEXTVAL('BillSeq') PRIMARY KEY, Treatment_Type Text, Cost integer) PARTITION BY RANGE(Bill_No);
+
+CREATE TABLE tran_first PARTITION OF ClinicTransaction FOR VALUES FROM (MINVALUE) TO (250);
+CREATE TABLE tran_two PARTITION OF ClinicTransaction FOR VALUES FROM (251) TO (500);
+CREATE TABLE tran_three PARTITION OF ClinicTransaction FOR VALUES FROM (501) TO (1000);
+CREATE TABLE tran_four PARTITION OF ClinicTransaction FOR VALUES FROM (1001) TO (1500);
+CREATE TABLE tran_five PARTITION OF ClinicTransaction FOR VALUES FROM (1501) TO (2000);
+
+insert into ClinicTransaction(Treatment_Type,Cost) values ('RCT', 3000);
+insert into ClinicTransaction (Treatment_Type,Cost) values ('8th Tooth Extraction', 4000);
+
+insert into ClinicTransaction (Treatment_Type,Cost) values ('Braces', 30000);

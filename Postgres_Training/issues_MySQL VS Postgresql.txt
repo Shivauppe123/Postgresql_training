@@ -1,0 +1,54 @@
+===================================================================================================================================================================================
+Group by issue 
+=================================================================================================================================================================================== 
+MySQL Code: (It will work fine)
+ 
+select forecast_metricvalue_2
+from forecast_detail fd
+join metric_codelookup mcl on mcl.metric = fd.metric where forecast_master_id = 70533 and 
+fd.metric in (select distinct metric from metric_codelookup) group by mcl.metric;
+ 
+ 
+PostgreSQL Code:(It expects column "fd.forecast_metricvalue_2" must appear in the GROUP BY clause or be used in an aggregate function)
+ 
+select forecast_metricvalue_2
+from forecast_detail fd
+join metric_codelookup mcl on mcl.metric = fd.metric where forecast_master_id = 63795 and 
+fd.metric in (select distinct metric from metric_codelookup) group by mcl.metric;
+ 
+ 
+Though Code is same for Both, but In postgresql Group by columns expects all the columns mentioned in the Select clause.
+ 
+Resolution: you can run below code:(Added column forecast_metricvalue_2 in group by clause) - But this is Meaningless.
+ 
+select forecast_metricvalue_2
+from forecast_detail fd
+join metric_codelookup mcl on mcl.metric = fd.metric where forecast_master_id = 56916 and 
+fd.metric in (select distinct metric from metric_codelookup) group by forecast_metricvalue_2,mcl.metric;
+===================================================================================================================================================================================
+Decimal Handling
+===================================================================================================================================================================================
+
+Why Migrate ?
+Cost,Flexibility,Customizability
+
+oratopg - tool to convert Oracle to PostgrSQL.
+
+In Postgresql - Object names are case sensitive. 
+if we need in Capitals - always use double quotes, else youll see in small leters.
+
+Dual table: not present in postgresql
+
+
+localtimestamp - equivalent for sysdate 
+
+
+
+
+
+
+
+
+
+
+

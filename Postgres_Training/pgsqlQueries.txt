@@ -1,0 +1,1082 @@
+do
+$$
+DECLARE
+v_patients_count INTEGER;
+BEGIN
+select count(*) INTO v_patients_count from patient;
+raise notice 'The number of patients available: %', v_patients_count;
+END;
+$$;
+=============================================
+do
+$$
+DECLARE
+v_patients_count INTEGER;
+v_mobile_no bigint;
+BEGIN
+select count(*) INTO v_patients_count from patient;
+select Doctor_MobileNo into v_mobile_no from doctor where regno='MDS23858'; 
+raise notice 'The number of patients available and doctor mobile no: % %', v_patients_count,v_mobile_no;
+END;
+$$;
+=====================================
+do
+$$
+<<dental_block>>
+DECLARE
+v_patients_count INTEGER;
+v_mobile_no bigint;
+BEGIN
+select count(*) INTO v_patients_count from patient;
+select Doctor_MobileNo into v_mobile_no from doctor where regno='MDS23858'; 
+raise notice 'The number of patients available and doctor mobile no: % %', v_patients_count,v_mobile_no;
+END dental_block $$;
+============================
+do
+$$
+<<outer_block>>
+DECLARE
+v_counter INTEGER := 1000;
+BEGIN
+v_counter := v_counter + 1;
+raise notice 'The counter value is % ', v_counter;
+<<inner_block1>>
+declare
+v_counter integer := 5000;
+begin
+v_counter := v_counter + 1;
+raise notice 'Inner Block 1 the counter value is % ', inner_block1.v_counter;
+raise notice 'Outer Block the counter value is % ', outer_block.v_counter;
+end inner_block1;
+<<inner_block2>>
+declare
+v_counter integer := 10000;
+begin
+v_counter := v_counter + 1;
+raise notice 'Inner Block 2 the counter value is % ', inner_block2.v_counter;
+raise notice 'Outer Block the counter value is % ', outer_block.v_counter;
+end inner_block2;
+
+END outer_block $$;
+===========================================
+do
+$$
+DECLARE
+v_firstname doctor.firstname%type;
+v_regno doctor.regno%type;
+v_specialization doctor.specialization%type;
+BEGIN
+select d.firstname,d.regno,d.specialization into v_firstname,v_regno,v_specialization from doctor d where d.doctor_mobileno=8056010299;
+raise notice 'The Doctor name, regno and speciaization =: % % %', v_firstname,v_regno,v_specialization;
+END;
+$$;
+=============================================
+do
+$$
+DECLARE
+v_doctor doctor%rowtype;
+BEGIN
+select * from doctor d into v_doctor where d.doctor_mobileno=8056010299;
+raise notice 'The Doctor name, regno and speciaization =: % % %', v_doctor.firstname,v_doctor.regno,v_doctor.specialization;
+END;
+$$;
+===========================================
+do
+$$
+DECLARE
+v_row record;
+BEGIN
+select * from doctor d into v_row where d.doctor_mobileno=8056010299;
+raise notice 'The Doctor name, regno and speciaization =: % % %', v_row.firstname,v_row.regno,v_row.specialization;
+select * from patient p INTO v_row where p.mobileno=9952032862;
+raise notice 'The Patient name, dob and gender =: % % %', v_row.firstname,v_row.dob,v_row.patient_gender;
+END;
+$$;
+==================================================
+do
+$$
+DECLARE
+v_row record;
+BEGIN
+for v_row in select * from patient p
+  Loop
+  raise notice 'The Patient name, dob and gender =: % % %', v_row.firstname,v_row.dob,v_row.patient_gender;
+  
+end loop; 
+END;
+$$;
+=======================================================
+do
+$$
+DECLARE
+v_igst constant NUMERIC(4,2):=0.18;
+v_row bill;
+BEGIN
+for v_row in select * from bill b
+  Loop
+  raise notice 'The BillNo = %, Bill Amount with GST = %', v_row.bill_no,v_row.cost+(v_row.cost * v_igst);
+  
+end loop; 
+END;
+$$;
+==================================================
+do $$ 
+begin 
+  raise info 'information message %', now() ;
+  raise log 'log message %', now();
+  raise debug 'debug message %', now();
+  raise warning 'warning message %', now();
+  raise notice 'notice message %', now();
+end $$;
+============================================
+do
+$$
+do
+$$
+DECLARE
+v_email patient.email%type :='bala@gmail.com';
+v_row record;
+BEGIN
+  for v_row in select * from patient
+    loop
+	if v_row.email = v_email THEN
+	     raise exception 'duplicate email: %', v_row.email using hint = 'check the email again';
+    end if; 
+  end loop;       
+  
+
+END;
+$$;
+=============================
+do
+$$
+DECLARE
+v_email patient.email%type :='param@gmail.com';
+v_row record;
+BEGIN
+  select * from patient p into v_row where p.mobileno=9952032862; 
+  raise notice 'email=%', v_row.email;
+  assert v_row.email = 'param@gmail.com', 'Email not Found';
+
+END;
+$$;
+====================================================
+do
+$$
+DECLARE
+v_row record;
+BEGIN
+  for v_row in select * from bill
+    loop
+	if v_row.cost >100 and v_row.cost < 1000 THEN
+	  raise notice 'Medicine cost = % , kindly pay as cash', v_row.cost;
+	elseif v_row.cost >1000 and v_row.cost < 5000 Then
+	  raise notice 'Medicine cost = % , kindly pay using card', v_row.cost;
+	else
+	  raise notice 'Medicine cost = % , kindly pay using card or convert to EMI', v_row.cost;
+	end if;
+	end loop;
+
+END;
+$$;
+================================================
+do $$
+declare 
+	price   bill.cost%type;
+	price_segment varchar(50);
+begin
+    -- get the treatment rate
+    select cost into price
+    from bill
+    where bill_no = 5002;
+	
+	-- assign the price segment
+	if found then
+		case price
+		   when 1500 then
+              price_segment =  'Low';
+		   when 15000 then
+              price_segment = 'Medium';
+		   when 45000 then
+              price_segment = 'High End';
+		   else
+	    	  price_segment = 'Unspecified';
+		   end case;
+		raise notice '%', price_segment;  
+    end if;
+end; $$
+
+
+================================================
+do
+$$
+DECLARE
+v_row record;
+v_message varchar(100);
+BEGIN
+   for v_row in select *  from bill
+     loop
+          CASE    
+            WHEN v_row.cost  > 500 and v_row.cost  <1000 THEN v_message :='Cash Payable';
+			WHEN v_row.cost  >1000 and v_row.cost  <5000 THEN v_message := 'Card Payable';
+	        WHEN v_row.cost  >5000 THEN v_message := 'Avail EMI';
+			ELSE
+			 v_message='Unknown';
+		  END CASE;
+		  raise notice 'Bill_No = % can pay Bill Amount= % as %',v_row.bill_no,v_row.cost, v_message;
+	 end loop;
+ 		  
+END;
+$$;
+===================================================
+do
+$$
+DECLARE
+v_counter INTEGER := 0;
+v_row  INTEGER :=0;
+v_message varchar(100);
+BEGIN
+   select count(*) into v_counter from bill;
+   while v_row < v_counter 
+     loop
+	   INSERT INTO Bill (Appointment_Id_FK,Treatment_Type,Cost) VALUES(1,'Implant',45000);  	   
+	     raise notice 'v_row = %', v_row;
+		 v_row := v_row + 1;
+	 end loop;
+ 		  
+END;
+$$;
+===================================================
+Create Type BloodType As Enum('A+','A-','B+','B-','AB+','AB-','O+','O-', );
+create table BloodBank(Id bigserial primary key,DonorId_FK bigint references Donor(DonorId),
+bloodcat bloodtype, qty integer, doc date);
+CREATE OR REPLACE PROCEDURE AddBlood
+(  
+    p_Id OUT bloodbank.id%type,  
+    p_donorId bloodbank.donorid_fk%type,  
+    p_bloodcat bloodbank.bloodcat%type,
+    p_qty bloodbank.qty%type,  
+    p_doc bloodbank.doc%type  
+)  
+LANGUAGE plpgsql AS  
+$$  
+BEGIN         
+   INSERT INTO bloodbank (donorid_fk,bloodcat,qty,doc) VALUES   
+    (p_donorid,  
+     p_bloodcat,
+     p_qty,
+     p_doc
+    ) RETURNING Id INTO p_Id;  
+END  
+$$; 
+
+CALL addblood(0,1,'O+',1000,'2023-03-01')  
+==============================================================
+CREATE OR REPLACE PROCEDURE UpdateBlood
+(  
+    p_Id IN bloodbank.id%type,  
+    p_doc OUT bloodbank.doc%type,  
+    p_qty IN OUT bloodbank.qty%type
+)  
+LANGUAGE plpgsql AS  
+$$  
+BEGIN         
+   update bloodbank set qyt=qty+p_qty 
+   where id=p_Id 
+RETURNING doc,qty INTO p_doc,p_qty;  
+END  
+$$; 
+
+CALL updateblood(1,null,2000)  
+===========================================
+CREATE OR REPLACE PROCEDURE DeleteBlood
+(  
+    p_Id IN bloodbank.id%type  
+  
+)  
+LANGUAGE plpgsql AS  
+$$  
+BEGIN         
+   delete from bloodbank where Id=p_Id;
+  
+END  
+$$; 
+
+CALL DeleteBlood(2)  
+
+=========================================
+CREATE OR REPLACE PROCEDURE BulkInsertion()
+
+LANGUAGE plpgsql AS  
+$$  
+Declare
+
+v_row record;
+
+BEGIN         
+  create table tempbill(Bill_No Numeric DEFAULT NEXTVAL('BillSeq') PRIMARY KEY, Appointment_Id_FK bigserial references Appointment(Appointment_Id),Treatment_Type Text, Cost integer);
+  copy tempbill from 'G:\Local disk\Postgres\bill.csv' DELIMITER ',' CSV HEADER;
+  for v_row in select * from tempbill
+   loop
+   if v_row.bill_no != 5050 then
+     INSERT INTO TempBill (Appointment_Id_FK,Treatment_Type,Cost) VALUES(1,'Consultation',500);
+   End IF;
+   
+   end loop;
+  
+  drop table tempbill;
+  
+END  
+$$; 
+
+call BulkInsertion()
+==============================
+create function get_totalcost returns int
+language plpgsql
+as
+$$
+declare
+   v_sum integer;
+begin
+   select sum(cost) 
+   into v_sum
+   from bill;  
+   
+   return v_sum;
+end;
+$$;
+
+select  get_totalcost();
+====================================
+DROP FUNCTION get_age(bigint,timestamp with time zone) 
+create or replace function get_age(p_mobileno bigint,p_current_date timestamp with time zone)
+returns text
+language plpgsql
+as $$
+declare 
+	age text;
+begin
+	-- get the age based on patient
+	
+	SELECT age(p_current_date, dob) into age from patient  where mobileno=p_mobileno;
+	-- return the age
+	return age;
+end; $$
+
+
+select get_age(9952032862,now())
+===========================================================
+create or replace function get_bill_stat(
+    out min_cost int,
+    out max_cost int,
+    out avg_cost int) 
+language plpgsql
+as $$
+begin
+  
+  select min(cost),
+         max(cost),
+		 avg(cost)
+  into min_cost, max_cost, avg_cost
+  from bill;
+
+end;$$
+
+select get_bill_stat();
+=========================================================
+create or replace function bill_count(
+	inout id int
+) 
+language plpgsql	
+as $$
+begin
+   select count(bill_no) into id from bill group by cost having cost < id;
+
+end; $$;
+
+select bill_count(10000);
+=====================================================
+create or replace function get_patient_age_duration(
+	p_mobileno bigint, 
+	p_current_date date default now()::Date
+)
+returns integer
+language plpgsql
+as $$
+declare 
+	age_duration integer;
+begin
+	select sum( 
+		extract( day from (p_current_date)  - dob :: timestamp)) into age_duration
+	 from patient where mobileno = p_mobileno;
+	return age_duration;
+
+end; $$
+
+select get_patient_age_duration(9952032862);
+==========================================================
+create or replace function get_bills (
+	p_pattern varchar
+	
+) 
+returns table (
+	p_billno bigint,
+	p_cost int
+) 
+language plpgsql
+as $$
+declare 
+    var_r record;
+begin
+	for var_r in(
+            select bill_no,cost
+            from bill 
+	     where treatment_type ilike p_pattern 
+        )
+     loop
+     p_billno := var_r.bill_no ; 
+	  p_cost := var_r.cost;
+     return next;
+	end loop;
+end; $$
+
+
+select get_bills('f%');
+===============================================================
+create or replace procedure insert_bill_data(
+	p_data varchar,
+    p_appointment_no bigint
+)
+language plpgsql	
+as $$
+declare
+	v_treatment_type varchar;
+	v_cost varchar;
+begin
+	-- split the p_data into treatment type & cost
+	select 
+		split_part(p_data,'-', 1),
+		split_part(p_data,'-', 2)
+	into v_treatment_type,
+	     v_cost;
+	
+	-- insert first & last name into the actor table
+	insert into bill(Appointment_Id_FK, Treatment_Type, Cost)
+	values(p_appointment_no,v_treatment_type, v_cost :: int);
+end;
+$$;
+
+call insert_bill_data('Polishing-750',1)
+==========================================================
+create or replace function get_patient_names(p_mobileno bigint) returns text language plpgsql as $$
+
+declare 
+	 v_prescription_info text default '';
+	 rec   record;
+	 cur_prescription cursor(p_mobileno bigint) 
+		 for select prescription_info,doctor_mobileno_fk
+		 from prescription
+		 where patient_mobileno_fk = p_mobileno;
+begin
+   -- open the cursor
+   open cur_prescription(p_mobileno);
+	
+   loop
+    -- fetch row into the film
+      fetch cur_prescription into rec;
+    -- exit when no more row to fetch
+      exit when not found;
+
+    -- build the output
+      if rec.doctor_mobileno_fk > 0 then 
+         v_prescription_info :=  v_prescription_info || ',' || rec.prescription_info || ':' || rec.doctor_mobileno_fk;
+      end if;
+   end loop;
+  
+   -- close the cursor
+   close cur_prescription;
+
+   return v_prescription_info;
+end; $$
+
+select get_patient_names(9952032862) 
+========================================================================
+
+create or replace procedure get_patient_names_proc(p_mobileno bigint, p_data OUT text ) language plpgsql as $$
+
+declare 
+	 v_prescription_info text default '';
+	 rec   record;
+	 cur_prescription cursor(p_mobileno bigint) 
+		 for select prescription_info,doctor_mobileno_fk
+		 from prescription
+		 where patient_mobileno_fk = p_mobileno;
+begin
+   -- open the cursor
+   open cur_prescription(p_mobileno);
+	
+   loop
+    -- fetch row into the film
+      fetch cur_prescription into rec;
+    -- exit when no more row to fetch
+      exit when not found;
+
+    -- build the output
+      if rec.doctor_mobileno_fk > 0 then 
+         v_prescription_info :=  v_prescription_info || ',' || rec.prescription_info || ':' || rec.doctor_mobileno_fk;
+      end if;
+   end loop;
+  
+   -- close the cursor
+   close cur_prescription;
+
+   p_data := v_prescription_info;
+end; $$
+
+
+call get_patient_names_proc(9952032862,null)
+==============================================================
+
+
+create or replace procedure get_prescription_join_proc(p_data OUT text ) language plpgsql as $$
+
+declare 
+	 v_prescription_info text default '';
+	 rec   record;
+	 cur_prescription cursor 
+		 for select p.prescription_info as info, concat(d.firstname,d.lastname) as name
+		 from prescription p inner join Doctor d on p.doctor_mobileno_fk=d.doctor_mobileno;
+		
+begin
+   -- open the cursor
+   open cur_prescription;
+	
+   loop
+    -- fetch row into the film
+      fetch cur_prescription into rec;
+    -- exit when no more row to fetch
+      exit when not found;
+
+    -- build the output
+      if rec.length(name) > 0 then 
+         v_prescription_info :=  v_prescription_info || ',' || rec.info || ':' || rec.name;
+      end if;
+   end loop;
+  
+   -- close the cursor
+   close cur_prescription;
+
+   p_data := v_prescription_info;
+end; $$
+
+
+call get_prescription_join_proc(null)
+===============================================================
+#ref cursor
+
+
+CREATE FUNCTION reffunc(refcursor) RETURNS refcursor AS '
+BEGIN
+    OPEN $1 FOR SELECT cost FROM bill;
+    RETURN $1;
+END;
+' LANGUAGE plpgsql;
+
+#run following together
+SELECT reffunc('myowncursorname');
+fetch all in myowncursorname;
+==============================================================================
+CREATE FUNCTION reffunc_new(refcursor) RETURNS refcursor AS '
+BEGIN
+    OPEN $1 FOR SELECT * FROM bill;
+    RETURN $1;
+END;
+' LANGUAGE plpgsql;
+
+
+#run following together
+SELECT reffunc_new('myowncursorname');
+fetch all in myowncursorname;
+===========================================================
+#arrays
+CREATE OR REPLACE FUNCTION printbills ()
+RETURNS INT[]
+LANGUAGE plpgsql
+COST 100 volatile as $body$ 
+declare v_billnos int[];
+BEGIN
+     SELECT array_agg(bill_no) INTO v_billnos
+      FROM bill;
+     RETURN v_billnos;
+END;
+$body$;
+===============================
+#array
+CREATE OR REPLACE FUNCTION printbills ()
+RETURNS INT[]
+LANGUAGE plpgsql as $$
+
+declare v_billnos int[];
+BEGIN
+     SELECT array_agg(bill_no) INTO v_billnos
+      FROM bill;
+     RETURN v_billnos;
+END;
+$$
+
+select printbills()
+===============================
+#associative array
+
+DO $$
+DECLARE
+  -- Declare array  
+  organs  varchar[];   -- Array variable declaration
+BEGIN
+  -- Add elements (key-value pairs) to associative array:
+ 
+  organs[1]  := 'Kidney';
+  organs[2]  := 'Liver';
+  organs[3]  := 'Heart';
+ 
+  -- Change value associated with key 'Smallville':
+  organs[2] := 'Pancreas';
+ 
+  -- Print associative array:
+  -- second parameter is dimension
+  FOR i IN array_lower(organs, 1) .. array_upper(organs, 1) LOOP
+    RAISE notice 'Organs of i % = %', i,organs[i];
+  END LOOP;
+END $$;
+==============================
+DO
+$$
+DECLARE
+  /* Declare an array of integers with a subordinate array of integers. */
+  list  varchar[][] = ARRAY[ARRAY['Filling','RCT','Cleaning','Polishing']
+                       ,ARRAY['Extraction','Implant','Decay','DeScaling']
+                       ,ARRAY['Bracing','Prostho','Paedo','Endo']
+                       ,ARRAY['Ortho','Maxilo','Oral','Cosmetic']
+                       ];
+  ROW   varchar = '';
+BEGIN
+  /* Loop through the first dimension of integers. */
+  <<OUTER>>
+  FOR i IN 1..ARRAY_LENGTH(list,1) LOOP
+    ROW = '';
+    /* Loop through the second dimension of integers. */
+    <<INNER>>
+    FOR j IN 1..ARRAY_LENGTH(list,2) LOOP
+      IF LENGTH(ROW) = 0 THEN
+        ROW = ROW || list[i][j];
+      ELSE
+        ROW = ROW || ',' || list[i][j];
+      END IF;
+    END LOOP;
+    /* Exit outer loop. */
+    RAISE NOTICE 'Row [%][%]', i, ROW;
+  END LOOP;
+END;
+$$;
+========================================
+#exception
+do
+$$
+declare
+	rec record;
+	v_billno bigint = 2000;
+begin
+	-- select a film 
+	select treatment_type, cost 
+	into strict rec
+	from bill
+	where bill_no = v_billno;
+        -- catch exception
+	exception 
+	   when no_data_found then 
+	      raise exception 'Bill % not found', v_billno;
+end;
+$$
+language plpgsql;
+============================================
+do
+$$
+declare
+	rec record;
+begin
+	-- select film 
+	select bill_no, cost 
+	into strict rec
+	from bill
+	where treatment_type ilike 'i%';
+	
+	exception 
+	   when too_many_rows then
+	      raise exception 'Search query returns too many rows';
+end;
+$$
+language plpgsql;
+=========================================
+do
+$$
+declare
+	rec record;
+	v_billno int = 90;
+begin
+	-- select a film 
+	select treatment_type, cost 
+	into strict rec
+	from bill
+	where bill_no = v_billno;
+
+	select bill_no, cost 
+	into strict rec
+	from bill
+	where treatment_type ilike 'i%';
+        -- catch exception
+	exception 
+	   when sqlstate 'P0002' then 
+	      raise exception 'BillNo % not found', v_billno;
+	   when sqlstate 'P0003' then 
+	      raise exception 'Too many records';
+end;
+$$
+language plpgsql;
+===================================================
+
+CREATE OR REPLACE FUNCTION public.healthpackage$getBills (p_treatment_type varchar)
+  RETURNS void AS $function$  
+DECLARE
+  v_rec record;  
+BEGIN 
+  for v_rec in SELECT * 
+    FROM public.bill b
+   WHERE b.treatment_type ilike p_treatment_type
+  LOOP 
+  RAISE Notice 'Bill no=% as Cost =%',v_rec.bill_no,v_rec.cost;
+  END LOOP;
+END;  
+$function$
+LANGUAGE plpgsql; 
+
+--This is similar to Oracle set serveroutput on
+
+select public.healthpackage$getBills ('i%');
+=========================================================================
+
+create schema healthschema;
+
+CREATE OR REPLACE FUNCTION healthschema.healthpackage$getBills (p_treatment_type varchar)
+  RETURNS void AS $function$  
+DECLARE
+  v_rec record;  
+BEGIN 
+  for v_rec in SELECT * 
+    FROM public.bill b
+   WHERE b.treatment_type ilike p_treatment_type
+  LOOP 
+  RAISE Notice 'Bill no=% as Cost =%',v_rec.bill_no,v_rec.cost;
+  END LOOP;
+END;  
+$function$
+LANGUAGE plpgsql; 
+
+--This is similar to Oracle set serveroutput on
+
+select healthschema.healthpackage$getBills ('i%');
+===============================================================================
+#nested table
+-- Conditionally drop the player type.
+DROP TYPE IF EXISTS dental_medicine;
+ 
+-- Create the player type.
+CREATE TYPE dental_medicine AS
+( medicine_id      integer
+, name          varchar(24)
+, dosage    varchar(50) );
+
+
+-- Conditionally drop the world_series table.
+DROP TABLE IF EXISTS dental_prescription;
+ 
+-- Create the player type.
+CREATE TABLE dental_prescription
+( id  bigserial
+, doctorname            varchar(50)
+, medicines         dental_medicine[3]
+ );
+
+INSERT INTO dental_prescription
+( doctorname,medicines) VALUES ('Dr. Vignesh Manickam'
+, ARRAY[(1,'Paracetamol','500mg')::dental_medicine
+       ,(2,'DOLO','500mg')::dental_medicine]
+);
+
+
+
+UPDATE dental_prescription
+SET    medicines = (SELECT ARRAY_APPEND(medicines,(3,'citrazine','250mg')::dental_medicine) FROM dental_prescription)
+WHERE  doctorname = 'Dr. Vignesh Manickam';
+
+SELECT UNNEST(medicines) AS medicine_list
+FROM   dental_prescription
+WHERE  doctorname = 'Dr. Vignesh Manickam';
+
+WITH list AS
+ (SELECT UNNEST(medicines) AS row_result
+  FROM   dental_prescription
+  WHERE  doctorname = 'Dr. Vignesh Manickam')
+
+SELECT  (row_result).medicine_id
+,       (row_result).name
+,       (row_result).dosage
+FROM     list;
+=============================================
+#union query
+
+DROP TABLE IF EXISTS top_rated_films;
+CREATE TABLE top_rated_films(
+	title VARCHAR NOT NULL,
+	release_year SMALLINT
+);
+
+DROP TABLE IF EXISTS most_popular_films;
+CREATE TABLE most_popular_films(
+	title VARCHAR NOT NULL,
+	release_year SMALLINT
+);
+
+
+
+INSERT INTO 
+   top_rated_films(title,release_year)
+VALUES
+   ('The Shawshank Redemption',1994),
+   ('The Godfather',1972),
+   ('12 Angry Men',1957);
+
+INSERT INTO 
+   most_popular_films(title,release_year)
+VALUES
+   ('An American Pickle',2020),
+   ('The Godfather',1972),
+   ('Greyhound',2020);
+
+
+SELECT * FROM top_rated_films
+UNION
+SELECT * FROM most_popular_films;
+
+
+SELECT * FROM top_rated_films
+UNION ALL
+SELECT * FROM most_popular_films;
+
+==============================================
+#upsert
+
+DROP TABLE IF EXISTS customers;
+
+CREATE TABLE customers (
+	customer_id serial PRIMARY KEY,
+	name VARCHAR UNIQUE,
+	email VARCHAR NOT NULL,
+	active bool NOT NULL DEFAULT TRUE
+);
+INSERT INTO 
+    customers (name, email)
+VALUES 
+    ('IBM', 'contact@ibm.com'),
+    ('Microsoft', 'contact@microsoft.com'),
+    ('Intel', 'contact@intel.com');
+
+INSERT INTO customers (NAME, email)
+VALUES('Microsoft','hotline@microsoft.com') 
+ON CONFLICT ON CONSTRAINT customers_name_key 
+DO NOTHING;
+
+INSERT INTO customers (name, email)
+VALUES('Microsoft','hotline@microsoft.com') 
+ON CONFLICT (name) 
+DO 
+   UPDATE SET email = EXCLUDED.email || ';' || customers.email;
+================================================================
+
+MERGE INTO top_rated_films t
+USING (SELECT * FROM most_popular_films) v
+ON v.title = t.title
+WHEN NOT MATCHED THEN
+  INSERT VALUES(v.title, v.release_year)
+WHEN MATCHED THEN
+  UPDATE SET title = t.title || v.title;
+
+
+or
+
+INSERT INTO top_rated_films select * from most_popular_films 
+ON CONFLICT (title) 
+DO 
+   UPDATE SET title = EXCLUDED.title || ';' || top_rated_films.title;
+========================================================================
+
+
+CREATE TABLE bill_audits (
+   id bigserial primary key,
+   treatment_type  varchar(100) NOT NULL,
+   cost int NOT NULL,
+   changed_on Timestamp NOT NULL
+);
+
+
+CREATE OR REPLACE FUNCTION log_treatment_type_changes()
+  RETURNS TRIGGER 
+  LANGUAGE PLPGSQL
+  AS
+$$
+BEGIN
+	IF NEW.treatment_type <> OLD.treatment_type THEN
+		 INSERT INTO bill_audits(treatment_type,cost,changed_on)
+		 VALUES(OLD.treatment_type,OLD.cost,now());
+	END IF;
+
+	RETURN NEW;
+END;
+$$
+
+CREATE TRIGGER bill_update_trigger
+
+  AFTER UPDATE
+
+  ON "bill"
+
+  FOR EACH ROW
+
+  EXECUTE PROCEDURE log_treatment_type_changes();
+
+
+
+UPDATE bill
+SET treatment_type = 'Implant'
+WHERE ID = 5002;
+
+=====================================================
+
+CREATE OR REPLACE FUNCTION update_bill_afterbusiness_hours()
+  RETURNS TRIGGER
+  LANGUAGE PLPGSQL
+  AS
+$$
+BEGIN
+  IF (TO_CHAR(now(),'DAY') IN ('FRIDAY','SATURDAY','SUNDAY')) OR
+     (TO_CHAR(now(),'HH24:MI')  NOT BETWEEN '08:00' AND '14:00') THEN 
+     raise exception 'You may try to insert into bill table only during business hours.';
+  END IF;
+RETURN NEW;
+
+END;
+$$
+
+CREATE or REPLACE TRIGGER bill_update_trigger_after_business_hours
+
+  BEFORE UPDATE
+
+  ON "bill"
+
+  FOR EACH ROW
+
+  EXECUTE PROCEDURE update_bill_afterbusiness_hours();
+
+
+
+UPDATE bill
+SET treatment_type = 'Implant'
+WHERE bill_no = 5002;
+==============================================================================================
+#bench marking
+Create a test database
+
+CREATE DATABASE mydb
+
+Initialise the pgbench db – this will create the sample tables in the db
+
+pgbench -U postgres -p 5555 -i -s 50  mydb
+
+-I initialize the db. Creates a bunch of default tables
+
+-s  scaling option. i.e take the default rows and x 50 or whatever scaling number you require
+
+This step will create 4 tables - which host the test date rows and other metadata
+
+Schema | Name | Type | Owner
+--------+------------------+-------+----------
+public | pgbench_accounts | table | postgres
+public | pgbench_branches | table | postgres
+public | pgbench_history | table | postgres
+public | pgbench_tellers | table | postgres
+
+ 
+
+Establish a baseline
+
+pgbench -U postgres -p 5555 -c 10 -j 2 -t 10000 mydb
+
+-c number of clients
+
+-j 2 number of threads
+
+-t amount of transactions
+
+These values are 10000 transactions per client. So : 10 x 10000 = 100,000 transactions
+========================================
+
+#FDW
+Create EXTENSION :
+    CREATE EXTENSION postgres_fdw;
+Create SERVER :
+    CREATE SERVER server_name FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host 'host_ip', 
+    dbname 'db_name', port 'port_number');
+Create USER MAPPING:
+    CREATE USER MAPPING FOR CURRENT_USER
+    SERVER server_name
+    OPTIONS (user 'user_name', password 'password');
+Create new schema to access schema of server DB:
+   CREATE SCHEMA schema_name;
+Import server schema:
+     IMPORT FOREIGN SCHEMA schema_name_to_import_from_remote_db
+     FROM SERVER server_name
+     INTO schema_name;
+Access any table of server schema:
+    SELECT * FROM schema_name.table_name; 
+
+
+CREATE EXTENSION postgres_fdw;
+
+ CREATE SERVER testserver FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host 'postgresql-94426-0.cloudclusters.net', 
+    dbname 'testdb', port '18220');
+
+CREATE USER MAPPING FOR postgres SERVER testserver OPTIONS (user 'admin', password 'postgres');
+	
+ CREATE SCHEMA cloudschema;
+ 
+ select * from pg_foreign_server;
+ select * from pg_user_mapping;
+ GRANT USAGE ON FOREIGN SERVER testserver TO admin;
+IMPORT FOREIGN SCHEMA public LIMIT TO (customer) FROM SERVER testserver INTO public;
+============================
+
+create table doctor_bill(name varhchar(100) unique, billno bigint);
+
+
+
+
+INSERT INTO doctor_bill                  
+ select concat (d.firstname,d.lastname),b.billno from appointment a inner join bill b on a.appointmentId=b.appointmentId_fk inner join doctor d on d.mobileno=a.doctor_mobileno_fk
+ 
+ON CONFLICT ON CONSTRAINT doctor_bill_name_key 
+DO NOTHING;
+
+INSERT INTO doctor_bill select concat (d.firstname,d.lastname),b.billno from appointment a inner join bill b on a.appointmentId=b.appointmentId_fk inner join doctor d on d.mobileno=a.doctor_mobileno
+ON CONFLICT (name) 
+DO 
+   UPDATE SET email = EXCLUDED.email || ';' || customers.email;
+
